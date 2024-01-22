@@ -25,19 +25,28 @@ async function run() {
     client.connect();
 
     const productsDB = client.db("bistroBossRestodant").collection("products");
+    const reviewsDB = client.db("bistroBossRestodant").collection("reviews");
 
     app.get("/", (req, res) => {
       res.send("Hello World!");
     });
 
     app.get("/menu", async (req, res) => {
-      const { category } = req.query;
+      const { category, limit } = req.query;
       const query = { category: category };
+      const defaultLimit = parseInt(limit);
       const result = await productsDB
         .find(category && query)
-        .limit(6)
+        .limit(defaultLimit)
         .toArray();
       res.send(result);
+    });
+
+    app.get("/totalProducts", async (req, res) => {
+      const { category } = req.query;
+      const query = { category: category };
+      const result = await productsDB.countDocuments(query);
+      res.send({ result });
     });
 
     app.get("/allMenu", async (req, res) => {
@@ -45,13 +54,32 @@ async function run() {
       const query = { category: category };
       const defaultLimit = parseInt(limit);
       const countProduct = await productsDB.countDocuments();
-      if (defaultLimit <= countProduct) {
-        const result = await productsDB
-          .find(category && query)
-          .limit(defaultLimit)
-          .toArray();
-        res.send(result);
+      if (defaultLimit > countProduct) {
+        return;
       }
+      const result = await productsDB
+        .find(category && query)
+        .limit(defaultLimit)
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/shopMenu", async (req, res) => {
+      const { page, category, limit } = req.query;
+      const currentPage = parseInt(page) || 1;
+      const currentLimit = parseInt(limit) || 6;
+      const query = { category: category };
+      const result = await productsDB
+        .find(query)
+        .skip((currentPage - 1) * limit)
+        .limit(currentLimit)
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/reviews", async (req, res) => {
+      const result = await reviewsDB.find().toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
