@@ -26,6 +26,7 @@ async function run() {
 
     const productsDB = client.db("bistroBossRestodant").collection("products");
     const reviewsDB = client.db("bistroBossRestodant").collection("reviews");
+    const cartsDB = client.db("bistroBossRestodant").collection("carts");
 
     app.get("/", (req, res) => {
       res.send("Hello World!");
@@ -79,6 +80,30 @@ async function run() {
 
     app.get("/reviews", async (req, res) => {
       const result = await reviewsDB.find().toArray();
+      res.send(result);
+    });
+
+    // Carts
+    app.get('/carts', async(req, res) => {
+      const {email} = req.query;
+      const query = {email: email};
+      const result = await cartsDB.find(query).toArray();
+      res.send(result)
+    })
+
+    app.post("/carts", async (req, res) => {
+      const { email } = req.query;
+      const { name, recipe, image, category, price, _id } = req.body;
+      const doc = {
+        itemId: _id,
+        name,
+        recipe,
+        image,
+        category,
+        price,
+        email: email,
+      };
+      const result = await cartsDB.insertOne(doc);
       res.send(result);
     });
 
