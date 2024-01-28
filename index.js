@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.POST || 5000;
@@ -8,6 +9,27 @@ require("dotenv").config();
 // Middle Were
 app.use(cors());
 app.use(express.json());
+
+// VerifyJWT
+const VerifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  console.log(authorization);
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "unauthorized access" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xevudqv.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -24,12 +46,77 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     client.connect();
 
+    const usersDB = client.db("bistroBossRestodant").collection("users");
     const productsDB = client.db("bistroBossRestodant").collection("products");
     const reviewsDB = client.db("bistroBossRestodant").collection("reviews");
     const cartsDB = client.db("bistroBossRestodant").collection("carts");
 
-    app.get("/", (req, res) => {
-      res.send("Hello World!");
+    // jWT
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    // VerifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersDB.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
+
+    // Users Admin Apis
+    app.get("/users", VerifyJWT, verifyAdmin, async (req, res) => {
+      const result = await usersDB.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/users", async (req, res) => {
+      const { name, email } = req.body;
+      const doc = {
+        name,
+        email,
+      };
+      const filter = { email: email };
+      const user = await usersDB.findOne(filter);
+      if (user) {
+        return res.status(401).send({ message: "User Already Exit" });
+      }
+      const result = await usersDB.insertOne(doc);
+      res.send(result);
+    });
+
+    app.get("/users/admin/:email", VerifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+
+      const query = { email: email };
+      const user = await usersDB.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersDB.updateOne(filter, updateDoc);
+      res.send(result);
     });
 
     app.get("/menu", async (req, res) => {
@@ -84,8 +171,19 @@ async function run() {
     });
 
     // Carts
-    app.get("/carts", async (req, res) => {
+    app.get("/carts", VerifyJWT, async (req, res) => {
       const { email } = req.query;
+      if (!email) {
+        res.send([]);
+      }
+
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+
       const query = { email: email };
       const result = await cartsDB.find(query).toArray();
       res.send(result);
