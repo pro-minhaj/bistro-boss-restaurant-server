@@ -13,7 +13,6 @@ app.use(express.json());
 // VerifyJWT
 const VerifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log(authorization);
   if (!authorization) {
     return res
       .status(401)
@@ -127,6 +126,12 @@ async function run() {
         .find(category && query)
         .limit(defaultLimit)
         .toArray();
+      res.send(result);
+    });
+
+    app.post("/menu", VerifyJWT, verifyAdmin, async (req, res) => {
+      const item = req.body;
+      const result = await productsDB.insertOne(item);
       res.send(result);
     });
 
