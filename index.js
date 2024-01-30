@@ -119,6 +119,11 @@ async function run() {
     });
 
     app.get("/menu", async (req, res) => {
+      const result = await productsDB.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/menuCategory", async (req, res) => {
       const { category, limit } = req.query;
       const query = { category: category };
       const defaultLimit = parseInt(limit);
@@ -132,6 +137,13 @@ async function run() {
     app.post("/menu", VerifyJWT, verifyAdmin, async (req, res) => {
       const item = req.body;
       const result = await productsDB.insertOne(item);
+      res.send(result);
+    });
+
+    app.delete("/menu/:id", VerifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productsDB.deleteOne(query);
       res.send(result);
     });
 
