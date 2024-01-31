@@ -1,10 +1,11 @@
 const express = require("express");
+require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_TOKEN);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.POST || 5000;
-require("dotenv").config();
 
 // Middle Were
 app.use(cors());
@@ -49,6 +50,7 @@ async function run() {
     const productsDB = client.db("bistroBossRestodant").collection("products");
     const reviewsDB = client.db("bistroBossRestodant").collection("reviews");
     const cartsDB = client.db("bistroBossRestodant").collection("carts");
+    const paymentsDB = client.db("bistroBossRestodant").collection("payments");
 
     // jWT
     app.post("/jwt", (req, res) => {
@@ -226,6 +228,26 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await cartsDB.deleteOne(query);
+      res.send(result);
+    });
+
+    // Payment APIS
+    app.post("/create-payment-intent", VerifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", VerifyJWT, async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsDB.insertOne(payment);
       res.send(result);
     });
 
