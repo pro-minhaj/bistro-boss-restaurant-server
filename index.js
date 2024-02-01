@@ -99,7 +99,7 @@ async function run() {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
-        res.send({ admin: false });
+        return res.send({ admin: false });
       }
 
       const query = { email: email };
@@ -254,7 +254,31 @@ async function run() {
       };
       const deleteResult = await cartsDB.deleteMany(query);
 
-      res.send({insertResult, deleteResult});
+      res.send({ insertResult, deleteResult });
+    });
+
+    // Admin DashBoard APIs
+    app.get("/admin-stats", VerifyJWT, verifyAdmin, async (req, res) => {
+      const total = await paymentsDB
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalPrice: { $sum: "$price" },
+            },
+          },
+        ])
+        .toArray();
+      const users = await usersDB.estimatedDocumentCount();
+      const products = await productsDB.estimatedDocumentCount();
+      const orders = await paymentsDB.estimatedDocumentCount();
+
+      res.send({
+        total: total[0].totalPrice,
+        users,
+        products,
+        orders,
+      });
     });
 
     // Send a ping to confirm a successful connection
