@@ -281,6 +281,51 @@ async function run() {
       });
     });
 
+    app.get("/order-stats", VerifyJWT, verifyAdmin, async (req, res) => {
+      const result = await paymentsDB
+        .aggregate([
+          {
+            $unwind: "$menuItems",
+          },
+          {
+            $lookup: {
+              from: "products",
+              let: { menuItemId: { $toObjectId: "$menuItems" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$_id", "$$menuItemId"],
+                    },
+                  },
+                },
+              ],
+              as: "menuItemsData",
+            },
+          },
+          {
+            $unwind: "$menuItemsData",
+          },
+          {
+            $group: {
+              _id: "$menuItemsData.category",
+              quantity: { $sum: 1 },
+              revenue: { $sum: "$menuItemsData.price" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              category: "$_id",
+              quantity: "$quantity",
+              total: "$revenue",
+            },
+          },
+        ])
+        .toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
