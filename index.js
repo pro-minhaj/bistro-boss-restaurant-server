@@ -142,6 +142,18 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/menu-item/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productsDB.findOne(query);
+      res.send(result);
+    });
+
+    app.patch("/menu-update/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+    });
+
     app.delete("/menu/:id", VerifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -336,17 +348,22 @@ async function run() {
       }
     );
 
-    app.patch("/payment-status/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          status: "Done",
-        },
-      };
-      const result = await paymentsDB.updateOne(filter, updateDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/payment-status/:id",
+      VerifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            status: "Done",
+          },
+        };
+        const result = await paymentsDB.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
