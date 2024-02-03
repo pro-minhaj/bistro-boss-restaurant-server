@@ -326,6 +326,28 @@ async function run() {
       res.send(result);
     });
 
+    app.get(
+      "/all-payment-history",
+      VerifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const result = await paymentsDB.find().toArray();
+        res.send(result);
+      }
+    );
+
+    app.patch("/payment-status/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: "Done",
+        },
+      };
+      const result = await paymentsDB.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
