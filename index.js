@@ -149,9 +149,21 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/menu-update/:id", async (req, res) => {
+    app.put("/menu-update/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      const { name, category, price, recipe } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          name,
+          category,
+          price: parseFloat(price),
+          recipe,
+        },
+      };
+      const result = await productsDB.updateOne(filter, updateDoc, options);
+      res.send(result);
     });
 
     app.delete("/menu/:id", VerifyJWT, verifyAdmin, async (req, res) => {
