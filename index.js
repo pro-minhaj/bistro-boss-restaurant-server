@@ -51,6 +51,7 @@ async function run() {
     const reviewsDB = client.db("bistroBossRestodant").collection("reviews");
     const cartsDB = client.db("bistroBossRestodant").collection("carts");
     const paymentsDB = client.db("bistroBossRestodant").collection("payments");
+    const bookingsDB = client.db("bistroBossRestodant").collection("bookings");
 
     // jWT
     app.post("/jwt", (req, res) => {
@@ -128,7 +129,7 @@ async function run() {
     });
 
     // user DashBoard Api
-    app.get("/user/payments", VerifyJWT, async (req, res) => {
+    app.get("/user-Activities", VerifyJWT, async (req, res) => {
       const { email } = req.query;
       const query = { email: email };
       const total = await paymentsDB
@@ -148,10 +149,18 @@ async function run() {
         ])
         .toArray();
       const totalOrder = await paymentsDB.countDocuments(query);
+      const totalReviews = await reviewsDB.countDocuments(query);
+
       res.send({
         total: total[0],
         totalOrder,
       });
+    });
+
+    app.post("/user-reservation", async (req, res) => {
+      const item = req.body;
+      const result = await bookingsDB.insertOne(item);
+      res.send(result);
     });
 
     // menu api
@@ -243,6 +252,7 @@ async function run() {
       res.send(result);
     });
 
+    // reviews Api
     app.get("/reviews", async (req, res) => {
       const result = await reviewsDB.find().toArray();
       res.send(result);
