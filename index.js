@@ -150,16 +150,38 @@ async function run() {
         .toArray();
       const totalOrder = await paymentsDB.countDocuments(query);
       const totalReviews = await reviewsDB.countDocuments(query);
+      const totalBookings = await bookingsDB.countDocuments({
+        userEmail: email,
+      });
 
       res.send({
         total: total[0],
         totalOrder,
+        totalReviews,
+        totalBookings,
       });
     });
 
-    app.post("/user-reservation", async (req, res) => {
+    app.post("/user-reservation", VerifyJWT, async (req, res) => {
       const item = req.body;
       const result = await bookingsDB.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/user-payment-history", async (req, res) => {
+      const { email } = req.query;
+      const query = { email: email };
+      const options = {
+        projection: {
+          _id: 1,
+          email: 1,
+          quantity: 1,
+          price: 1,
+          date: 1,
+          status: 1,
+        },
+      };
+      const result = await paymentsDB.find(query, options).toArray();
       res.send(result);
     });
 
