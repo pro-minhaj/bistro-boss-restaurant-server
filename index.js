@@ -168,7 +168,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/user-payment-history", async (req, res) => {
+    app.get("/user-payment-history", VerifyJWT, async (req, res) => {
       const { email } = req.query;
       const query = { email: email };
       const options = {
@@ -182,6 +182,20 @@ async function run() {
         },
       };
       const result = await paymentsDB.find(query, options).toArray();
+      res.send(result);
+    });
+
+    app.get("/user-bookings", VerifyJWT, async (req, res) => {
+      const { email } = req.query;
+      const query = { userEmail: email };
+      const result = await bookingsDB.find(query).toArray();
+      res.send(result);
+    });
+
+    app.delete("/user-booking/:id", VerifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await bookingsDB.deleteOne(filter);
       res.send(result);
     });
 
