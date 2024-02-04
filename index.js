@@ -128,8 +128,9 @@ async function run() {
     });
 
     // user DashBoard Api
-    app.get("/user/payments", async (req, res) => {
+    app.get("/user/payments", VerifyJWT, async (req, res) => {
       const { email } = req.query;
+      const query = { email: email };
       const total = await paymentsDB
         .aggregate([
           {
@@ -146,15 +147,14 @@ async function run() {
           },
         ])
         .toArray();
-      const totalOrder = await paymentsDB.estimatedDocumentCount({
-        email: email,
-      });
+      const totalOrder = await paymentsDB.countDocuments(query);
       res.send({
         total: total[0],
         totalOrder,
       });
     });
 
+    // menu api
     app.get("/menu", async (req, res) => {
       const result = await productsDB.find().toArray();
       res.send(result);
