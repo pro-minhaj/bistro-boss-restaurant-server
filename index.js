@@ -294,6 +294,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/user-review", VerifyJWT, async (req, res) => {
+      const item = req.body;
+      const result = await reviewsDB.insertOne(item);
+      res.send(result);
+    });
+
     // Carts
     app.get("/carts", VerifyJWT, async (req, res) => {
       const { email } = req.query;
