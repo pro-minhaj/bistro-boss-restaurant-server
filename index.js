@@ -120,11 +120,39 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", VerifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await usersDB.deleteOne(filter);
       res.send(result);
+    });
+
+    // user DashBoard Api
+    app.get("/user/payments", async (req, res) => {
+      const { email } = req.query;
+      const total = await paymentsDB
+        .aggregate([
+          {
+            $match: {
+              email: email,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalPrice: { $sum: "$price" },
+              totalQuantity: { $sum: "$quantity" },
+            },
+          },
+        ])
+        .toArray();
+      const totalOrder = await paymentsDB.estimatedDocumentCount({
+        email: email,
+      });
+      res.send({
+        total: total[0],
+        totalOrder,
+      });
     });
 
     app.get("/menu", async (req, res) => {
@@ -156,7 +184,7 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/menu-update/:id", async (req, res) => {
+    app.put("/menu-update/:id", VerifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const { name, category, price, recipe } = req.body;
       const filter = { _id: new ObjectId(id) };
